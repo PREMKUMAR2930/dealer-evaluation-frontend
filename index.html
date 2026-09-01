@@ -1,10 +1,25 @@
 <!-- Inside index.html -->
 <script>
-  // Updated microservice endpoints pointing to IBM Cloud Code Engine
-  const PRODUCT_SERVICE_URL = "https://product-details.<region>.codeengine.appdomain.cloud/api/products";
-  const DEALER_SERVICE_URL = "https://dealer-details.<region>.codeengine.appdomain.cloud/api/dealers";
+  // 1. Updated Product Details Microservice Endpoint
+  const PRODUCT_DETAILS_URL = "https://product-details.<your-region>.codeengine.appdomain.cloud/products";
 
-  // Axios requests fetching data from your deployed microservices
-  axios.get(PRODUCT_SERVICE_URL).then(res => populateProducts(res.data));
-  axios.get(DEALER_SERVICE_URL).then(res => populateDealers(res.data));
+  // 2. Updated Dealer Pricing Microservice Endpoint
+  const DEALER_DETAILS_URL = "https://dealer-details.<your-region>.codeengine.appdomain.cloud/dealers";
+
+  // Example Axios requests using your deployed endpoints:
+  function fetchProductData() {
+    axios.get(PRODUCT_DETAILS_URL)
+      .then(response => {
+        // Code to populate product dropdown
+      })
+      .catch(error => console.error("Error fetching products:", error));
+  }
+
+  function fetchDealerData() {
+    axios.get(DEALER_DETAILS_URL)
+      .then(response => {
+        // Code to populate dealer pricing
+      })
+      .catch(error => console.error("Error fetching dealers:", error));
+  }
 </script>
