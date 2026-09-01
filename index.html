@@ -1,0 +1,10 @@
+<!-- Inside index.html -->
+<script>
+  // Updated microservice endpoints pointing to IBM Cloud Code Engine
+  const PRODUCT_SERVICE_URL = "https://product-details.<region>.codeengine.appdomain.cloud/api/products";
+  const DEALER_SERVICE_URL = "https://dealer-details.<region>.codeengine.appdomain.cloud/api/dealers";
+
+  // Axios requests fetching data from your deployed microservices
+  axios.get(PRODUCT_SERVICE_URL).then(res => populateProducts(res.data));
+  axios.get(DEALER_SERVICE_URL).then(res => populateDealers(res.data));
+</script>
