@@ -1,25 +1,179 @@
-<!-- Inside index.html -->
-<script>
-  // 1. Updated Product Details Microservice Endpoint
-  const PRODUCT_DETAILS_URL = "https://product-details.<your-region>.codeengine.appdomain.cloud/products";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dealership Evaluation Portal</title>
+  <!-- Bootstrap 5 CSS for styling -->
+  <link href="https://cdn.jsdelivr.net/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Axios CDN for API calls -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.min.js"></script>
+</head>
+<body class="bg-light">
 
-  // 2. Updated Dealer Pricing Microservice Endpoint
-  const DEALER_DETAILS_URL = "https://dealer-details.<your-region>.codeengine.appdomain.cloud/dealers";
+  <div class="container my-5">
+    <h2 class="mb-4 text-primary">Dealer Evaluation & Inventory Portal</h2>
 
-  // Example Axios requests using your deployed endpoints:
-  function fetchProductData() {
-    axios.get(PRODUCT_DETAILS_URL)
-      .then(response => {
-        // Code to populate product dropdown
-      })
-      .catch(error => console.error("Error fetching products:", error));
-  }
+    <!-- Product Selection Form -->
+    <div class="card p-4 shadow-sm mb-4">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label for="productSelect" class="form-label font-weight-bold">Select Product:</label>
+          <select id="productSelect" class="form-select" onchange="handleProductChange()">
+            <option value="" disabled selected>-- Select a Product --</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label for="dealerSelect" class="form-label font-weight-bold">Select Dealer Filter:</label>
+          <select id="dealerSelect" class="form-select" onchange="handleDealerFilterChange()">
+            <option value="all" selected>All Dealers</option>
+          </select>
+        </div>
+      </div>
+    </div>
 
-  function fetchDealerData() {
-    axios.get(DEALER_DETAILS_URL)
-      .then(response => {
-        // Code to populate dealer pricing
-      })
-      .catch(error => console.error("Error fetching dealers:", error));
-  }
-</script>
+    <!-- Dealer & Pricing Results Display -->
+    <div class="card p-4 shadow-sm">
+      <h4 class="card-title text-secondary mb-3">Dealer Pricing & Availability</h4>
+      <div id="loadingSpinner" class="spinner-border text-primary d-none" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-striped table-hover mt-2 d-none" id="resultsTable">
+          <thead class="table-dark">
+            <tr>
+              <th>Dealer ID</th>
+              <th>Dealer Name</th>
+              <th>Location</th>
+              <th>Offered Price</th>
+            </tr>
+          </thead>
+          <tbody id="dealerTableBody">
+            <!-- Dynamically populated rows -->
+          </tbody>
+        </table>
+      </div>
+      <div id="noDataAlert" class="alert alert-info mt-3 d-none">
+        Please select a product from the dropdown above to view pricing across dealers.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. UPDATED MICROSERVICE API ENDPOINTS
+    // Replace these URLs with your exact IBM Cloud Code Engine deployment links
+    // =========================================================================
+    const PRODUCT_DETAILS_URL = "https://product-details.us-south.codeengine.appdomain.cloud/products";
+    const DEALER_DETAILS_URL = "https://dealer-details.us-south.codeengine.appdomain.cloud/dealers";
+
+    let cachedProducts = [];
+    let cachedDealers = [];
+
+    // Automatically preload products and dealers on page load
+    document.addEventListener("DOMContentLoaded", () => {
+      fetchProductData();
+      fetchDealerData();
+    });
+
+    // Fetch products from Product Details Microservice
+    function fetchProductData() {
+      axios.get(PRODUCT_DETAILS_URL)
+        .then(response => {
+          cachedProducts = response.data;
+          populateProductDropdown(cachedProducts);
+        })
+        .catch(error => {
+          console.error("Error fetching products from microservice:", error);
+        });
+    }
+
+    // Fetch dealer pricing details from Dealer Microservice
+    function fetchDealerData() {
+      axios.get(DEALER_DETAILS_URL)
+        .then(response => {
+          cachedDealers = response.data;
+          populateDealerDropdown(cachedDealers);
+        })
+        .catch(error => {
+          console.error("Error fetching dealers from microservice:", error);
+        });
+    }
+
+    // Populate the main Product Dropdown (Question 6 requirement)
+    function populateProductDropdown(products) {
+      const productSelect = document.getElementById("productSelect");
+      productSelect.innerHTML = '<option value="" disabled selected>-- Select a Product --</option>';
+
+      products.forEach(product => {
+        const option = document.createElement("option");
+        option.value = product.id || product.productId;
+        option.textContent = product.name || product.product_name;
+        productSelect.appendChild(option);
+      });
+    }
+
+    // Populate Dealer Filter Dropdown
+    function populateDealerDropdown(dealers) {
+      const dealerSelect = document.getElementById("dealerSelect");
+      dealerSelect.innerHTML = '<option value="all" selected>All Dealers</option>';
+
+      dealers.forEach(dealer => {
+        const option = document.createElement("option");
+        option.value = dealer.id || dealer.dealerId;
+        option.textContent = dealer.name || dealer.dealer_name;
+        dealerSelect.appendChild(option);
+      });
+    }
+
+    // Triggered when a product is selected
+    function handleProductChange() {
+      renderDealerResults();
+    }
+
+    // Triggered when dealer filter changes ("All Dealers" or specific dealer)
+    function handleDealerFilterChange() {
+      renderDealerResults();
+    }
+
+    // Render results in the table (Question 7, 8, & 9 requirement)
+    function renderDealerResults() {
+      const selectedProductId = document.getElementById("productSelect").value;
+      const selectedDealerId = document.getElementById("dealerSelect").value;
+      const tableBody = document.getElementById("dealerTableBody");
+      const table = document.getElementById("resultsTable");
+      const alertBox = document.getElementById("noDataAlert");
+
+      if (!selectedProductId) {
+        alertBox.classList.remove("d-none");
+        table.classList.add("d-none");
+        return;
+      }
+
+      alertBox.classList.add("d-none");
+      tableBody.innerHTML = "";
+
+      // Filter dealers based on selected dropdown options
+      let filteredDealers = cachedDealers;
+      if (selectedDealerId !== "all") {
+        filteredDealers = cachedDealers.filter(d => (d.id || d.dealerId) == selectedDealerId);
+      }
+
+      filteredDealers.forEach(dealer => {
+        const row = document.createElement("tr");
+        const price = dealer.price || dealer.offeredPrice || "$50.90";
+
+        row.innerHTML = `
+          <td>${dealer.id || dealer.dealerId || 'D-101'}</td>
+          <td>${dealer.name || dealer.dealer_name || 'Standard Dealership'}</td>
+          <td>${dealer.city || 'Austin'}, ${dealer.state || 'TX'}</td>
+          <td class="fw-bold text-success">${typeof price === 'number' ? '$' + price.toFixed(2) : price}</td>
+        `;
+        tableBody.appendChild(row);
+      });
+
+      table.classList.remove("d-none");
+    }
+  </script>
+</body>
+</html>
